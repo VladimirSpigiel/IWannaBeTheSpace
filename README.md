@@ -1,4 +1,4 @@
-# IWannaBeTheSpace
+# I Wanna Be TheSpace (2014)
 This project is a PoC that helped to learn more about Javascript / Canvas / HTML5.
 It is ready to use : just open index.html 
 
