@@ -1,0 +1,398 @@
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Transitional//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-transitional.dtd">
+<html xmlns="http://www.w3.org/1999/xhtml">
+<head>
+<meta http-equiv="Content-Type" content="text/html; charset=utf-8" />
+<title>Document sans nom</title>
+
+<script type="text/javascript" src="js/JqueryJS.js"></script>
+<script src="js/swipe.js"></script>
+<script src="js/ion.sound.js"></script>
+<script src="js/class/Mob.js"></script>
+<script src="js/class/Vaisseau.js"></script>
+<script src="js/class/Settings.js"></script>
+<script src="js/class/Missile.js"></script>
+<script src="js/class/Bouclier.js"></script>
+<script src="js/class/Repulsor.js"></script>
+<script src="js/class/score.js"></script>
+<script src="js/canvasplus.js"></script>
+
+</head>
+
+<body>
+
+<center>
+    <canvas id="Content" style="border:5px #999 solid; background-image:url(img/bg.jpg); background-size:100% 100%; float: left;">
+    Le canvas ne fonctionne pas sur votre navigateur
+    </canvas>
+    <section style="float: left; font-size: 25px;">
+        <p> Vessel life : <font class="v_life"> </font></p>
+        <p> Mobs killed : <font class="m_killed"> </font></p>
+        
+    </section>
+    
+</center>
+
+<script>
+$(function(){
+    $.ionSound({
+        sounds: [
+            "shoot"
+	
+        ],
+		path: "sound/",// set path to sounds
+		multiPlay: true,   // playing only 1 sound at once
+		volume: "0.8"   // not so loud please
+		
+    });
+	
+});
+
+
+</script>
+
+
+<script>
+window.onload = function(){
+	
+var canvas = document.getElementById('Content');
+var context = canvas.getContext('2d');
+var scale = 3;
+canvas.width = 400;
+canvas.height = canvas.width / 16 * 9;
+canvas.width *= scale;
+canvas.height *= scale;
+
+
+var counter = 0;
+var shooted = false;
+var up = true;
+
+
+var vaisseau = new Vaisseau(2,15,3);
+	
+
+        
+	var score = new Score();
+	var settings = new Settings();
+	var missile = [];
+	var missileMob = [];
+	var mob = [];
+	
+	var bouclier = null;
+        var repulsor = null;
+
+
+function AnimationBurst(){
+		
+	if((vaisseau.imageY >= vaisseau.imageFinalY - 10) && up )
+	{
+			if(counter % 1 == 0)
+				vaisseau.imageY -=1;
+			if(vaisseau.imageY == vaisseau.imageFinalY - 10)
+				up = false;
+	}
+	
+	if((vaisseau.imageY  <= vaisseau.imageFinalY) && !up )
+	{
+		
+			if(counter % 1 == 0)
+				vaisseau.imageY +=1;	
+			if(vaisseau.imageY == vaisseau.imageFinalY)
+				up = true;
+	}
+}
+
+function Waves(){
+    
+    
+    for(var i=0;i<mob.length;i++){
+        //console.log(mob[i].latest)
+        if(mob[i] != null){
+        if(mob[i].y > settings.mobSize*8)
+            mob[i].latest = false;
+        }
+        
+    }
+    
+    for(var y =0;y<1;y++){
+		for(var x=0;x*(settings.mobSize*11+35.30)+2*settings.mobSize<= canvas.width-settings.mobSize*11; x++){
+			//if(Math.floor((Math.random()*2)) == 2){
+                        mob[mob.length] = new Mob(x*(settings.mobSize*11+35.30)+settings.mobSize*11/settings.mobSize*settings.OffsetMob ,y*(settings.mobSize*8+50) - settings.mobSize*8, settings.mobSize);
+			mob[mob.length-1].latest = true;
+                    //}
+                        console.log('new');
+		}
+    }
+    
+}
+
+
+function Animation(){
+    
+        $('.m_killed').html(score.mobKilled);
+	
+	missile.sort();
+	mob.sort();
+	
+	//mob[mob.length] = new Mob(100,100, settings.mobSize);
+	
+	context.clearRect(0, 0, canvas.width, canvas.height);
+		//console.log(vaisseau.gauche);
+		
+		
+		
+	if(vaisseau != null){
+	vaisseau.Update();
+	vaisseau.Draw();
+	AnimationBurst();
+       
+	
+
+	
+			if(counter % 5 == 0)
+				shooted = false;
+			
+			if(vaisseau.tir && !shooted)
+			{
+				
+				//$.ionSound.play("shoot");
+				
+				if(vaisseau.type == 1)
+				{
+					missile[missile.length] = new Missile(settings.typeMissile, 0, settings.vitesseMissile,vaisseau);
+				}
+				
+				if(vaisseau.type == 2)
+				{
+					
+														 
+					missile[missile.length] = new Missile(settings.typeMissile, -3,settings.vitesseMissile/2,vaisseau);	
+														 
+					missile[missile.length] = new Missile(settings.typeMissile,0,settings.vitesseMissile/2,vaisseau);
+														 
+					missile[missile.length] = new Missile(settings.typeMissile,3,settings.vitesseMissile/2,vaisseau);
+					
+				}
+													 
+				shooted = true;
+			}
+	}
+	
+	if(bouclier != null){
+			
+			bouclier.Draw();
+                        
+                        if( bouclier.Destroyed() )
+                            bouclier = null;
+		}
+                
+        if(repulsor != null){
+                repulsor.Draw();
+        }
+	
+		
+	 
+	
+	for(var i = 0; i < missile.length ; i++)
+	{
+		if(missile[i] != null){
+			
+			
+			
+			missile[i].Update();
+			missile[i].Draw();
+			if(missile[i].collisionLimite())
+				missile[i] = null;
+		}
+	}
+	
+	for(var i=0; i <missile.length;i++){
+		for(var z=0; z<mob.length;z++){
+			
+			if(missile[i] != null && mob[z] != null)
+				if(missile[i].collisionEnnemi(mob[z])){
+					missile[i] = null;
+                                        if(mob[z].health <= 0){
+                                            mob[z] = null;
+                                            score.mobKilled++;
+                                        }
+				}
+		}
+	}
+	
+	for(var i=0;i<missileMob.length;i++)
+	{
+		if(missileMob[i] != null){
+							
+			missileMob[i].Update();
+			missileMob[i].Draw();	
+			
+			if(missileMob[i].collisionLimite() )
+				missileMob[i] = null;
+				
+				if(missileMob[i] != null)
+					if(missileMob[i].collisionVaisseau(vaisseau) ){
+						missileMob[i] = null;	
+					}
+                                    
+                                        if(missileMob[i] != null)
+                                            if(bouclier != null)
+                                                if(missileMob[i].collisionBouclier(bouclier)){
+                                                    missileMob[i] = null;
+                                                }
+                                        
+                                        if(missileMob[i] != null)
+                                             if(repulsor != null){
+                                               var SwitchMissile =   missileMob[i].collisionRepulsor(repulsor);
+                                                if(SwitchMissile){
+                                                    console.log(SwitchMissile.dx);
+                                                    missileMob[i] = null;
+                                                    
+                                                 
+                                                    
+                                                    missile[missile.length] = new Missile(4, -SwitchMissile.dx,-SwitchMissile.dy,vaisseau);
+                                                    
+                                                    missile[missile.length-1].x = SwitchMissile.x;
+                                                    missile[missile.length-1].y = SwitchMissile.y;
+                                                    
+                                                }
+                                           }
+		}
+	}
+	
+	for(var i=0;i<mob.length;i++){
+		
+		if(mob[i] != null ){
+			
+			if(Math.floor((Math.random()*2000)+1) == 2 && mob[i].y > 0)
+			missileMob[missileMob.length] = new MissileMob(1,0, Math.floor((Math.random()*3)+1) ,mob[i]);
+			
+                        
+			mob[i].Update();
+			mob[i].Draw();
+		
+		
+                if(repulsor != null){
+                    mob[i].enTremblement = true;
+                }
+                else if(repulsor == null){
+                    mob[i].enTremblement = false;
+                }
+                
+		
+		
+		if( mob[i].collisionLimite() ){
+			
+				mob[i] = null;
+				
+			}
+		
+		}
+	}
+	
+	
+	var CompteurMobDead = 0;
+
+	for(var i=0;i<mob.length;i++){
+	//
+            if(mob[i] !== null){
+                if(mob[i].y > settings.mobSize*8 && mob[i].latest == true){
+                    if(Math.floor((Math.random()*200)+1) === 2)
+                          Waves();
+                }
+            }
+            else{
+                CompteurMobDead++;
+                if(CompteurMobDead == mob.length )
+                    Waves();
+            }
+            
+        }
+        
+        
+        
+        /*if(mob.length == 0){
+            Waves();
+        }*/
+	
+	counter++;
+}
+
+
+
+
+	
+	Waves();
+	
+			
+	
+	
+	
+
+
+	
+
+	
+	window.onkeypress = function(event){
+		
+		if(vaisseau != null){
+			
+		if(event.charCode == 100) // D	
+			vaisseau.droite = true;
+		if(event.charCode == 113) // Q
+			vaisseau.gauche = true;
+		if(event.charCode == 32) // Espace
+			vaisseau.tir = true;
+			
+		if(event.charCode === 97)
+			if(settings.typeMissile !== settings.maxTypeMissile)
+				settings.typeMissile++;
+			else
+				settings.typeMissile = 1;
+				
+				
+		if(event.charCode === 101){
+				if(bouclier === null){
+					bouclier = new Bouclier(vaisseau);
+				}
+		}
+			
+			
+		}
+                
+               if(event.charCode == 99){
+                   
+                        if(repulsor === null){
+                                repulsor = new Repulsor(vaisseau);
+                        }
+                        else if (repulsor != null)
+                            repulsor = null;
+                      
+               }
+               
+       
+	}
+	
+	window.onkeyup = function(event){
+		
+		if(vaisseau !== null){
+		//console.log(event.which);
+		if(event.which === 68)
+			vaisseau.droite = false;
+		if(event.which === 81)
+			vaisseau.gauche = false;
+		if(event.which === 32)
+			vaisseau.tir = false;
+		
+		}
+	}
+	
+	
+	setInterval(Animation,1000 / 45);
+	
+}
+</script>
+    
+
+</body>
+</html>
